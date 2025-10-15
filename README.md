@@ -1,116 +1,114 @@
-**Deblock - Problem to be solved**
+## ✈️ Deblock Flights Service
 
-**Background:**
+Some parts of this documentation and code comments were generated with the help of AI tools (e.g., ChatGPT) to speed up routine work and improve readability.
+Usage, Assumptions and Future Improvements sections were originally written by the author and then refined with AI assistance
 
-DeblockFlights is a flights search solution which aggregates flight results initially from 2 different suppliers (CrazyAir and ToughJet). A future iteration (not part of the test) may add more suppliers.
+### 📌 Usage
 
+The service exposes a single endpoint:
 
-**What is required:**
+```bash
+POST /api/v1/search
+```
 
-Hexagonal architecture is preferred, but not mandatory: https://www.baeldung.com/hexagonal-architecture-ddd-spring
-Kotlin is what we use.
+This endpoint returns a list of one-way flights, sorted by ascending price, based on the provided search criteria
 
-Use this GitHub repository as a base to implement the Deblock Flights service that should produce an aggregated result from both CrazyAir and ToughJet.
-The result should be a JSON response which contains a list of flights ordered by fare which has the following attributes:
+The POST method is used (instead of GET) due to the complex structure of the request payload and its potential future
+expansion
 
-**Deblock Flights API**
+The architecture of the service is designed to make it easy to integrate new flight suppliers with minimal changes
 
-**Request**
+### 🧠 Assumptions
 
-| Name | Description |
-| ------ | ------ |
-| origin | 3 letter IATA code(eg. LHR, AMS) |
-| destination | 3 letter IATA code(eg. LHR, AMS) |
-| departureDate | ISO_LOCAL_DATE format |
-| returnDate | ISO_LOCAL_DATE format |
-| numberOfPassengers | Maximum 4 passengers |
+1. Each leg of a round-trip flight is assumed to cost half of the total round-trip fare
+2. For simplicity, the arrival time of each leg of a round-trip is assumed to be equal to its departure time
+3. Responses from flight suppliers are considered valid and do not require additional validation
+4. Complex multi-stop itineraries are not supported
 
-**Response**
+### 🧪 Example Request & Response
 
-| Name | Description |
-| ------ | ------ |
-| airline | Name of Airline |
-| supplier | Eg: CrazyAir or ToughJet |
-| fare | Total price rounded to 2 decimals |
-| departureAirportCode | 3 letter IATA code(eg. LHR, AMS) |
-| destinationAirportCode | 3 letter IATA code(eg. LHR, AMS) |
-| departureDate | ISO_DATE_TIME format |
-| arrivalDate | ISO_DATE_TIME format |
+#### ✍️ Request
 
-The service should connect to the both the suppliers using HTTP.
+```bash
+POST /api/v1/search
+Content-Type: application/json
+```
 
-**CrazyAir API**
+```json
+{
+  "origin": "LHR",
+  "destination": "CDG",
+  "departureDate": "2025-10-15",
+  "returnDate": "2025-10-20",
+  "numberOfPassengers": 1
+}
+```
 
-**Request**
+| Field                | Type    | Required | Description                                      |
+|----------------------|---------|----------|--------------------------------------------------|
+| `origin`             | string  | ✅        | IATA code of the departure airport (3 letters)   |
+| `destination`        | string  | ✅        | IATA code of the destination airport (3 letters) |
+| `departureDate`      | date    | ✅        | Departure date (YYYY-MM-DD)                      |
+| `returnDate`         | date    | ✅        | Return date (must be ≥ departure date)           |
+| `numberOfPassengers` | integer | ✅        | Number of passengers (1–4)                       |
 
-| Name | Description |
-| ------ | ------ |
-| origin | 3 letter IATA code(eg. LHR, AMS) |
-| destination | 3 letter IATA code(eg. LHR, AMS) |
-| departureDate | ISO_LOCAL_DATE format |
-| returnDate | ISO_LOCAL_DATE format |
-| passengerCount | Number of passengers |
+#### 📬 Successful Response (200 OK)
 
-**Response**
+```json
+[
+  {
+    "airline": "Ryanair",
+    "supplier": "ToughJet",
+    "fare": 12.34,
+    "departureAirportCode": "LHR",
+    "destinationAirportCode": "CDG",
+    "departureDate": "2025-10-15T12:44:00Z",
+    "arrivalDate": "2025-10-15T12:44:00Z"
+  },
+  {
+    "airline": "WizzAir",
+    "supplier": "CrazyAir",
+    "fare": 25.00,
+    "departureAirportCode": "LHR",
+    "destinationAirportCode": "CDG",
+    "departureDate": "2025-10-15T11:23:45Z",
+    "arrivalDate": "2025-10-15T14:23:45Z"
+  }
+]
+```
 
+| Field                    | Type     | Description                                                                |
+|--------------------------|----------|----------------------------------------------------------------------------|
+| `airline`                | string   | Name of the airline                                                        |
+| `supplier`               | string   | Source flight supplier (e.g., `CrazyAir`, `ToughJet`)                      |
+| `fare`                   | number   | Price of the one-way flight                                                |
+| `departureAirportCode`   | string   | IATA code of the departure airport                                         |
+| `destinationAirportCode` | string   | IATA code of the destination airport                                       |
+| `departureDate`          | datetime | Departure date and time (ISO 8601)                                         |
+| `arrivalDate`            | datetime | Arrival date and time (ISO 8601). For round-trip legs, may equal departure |
 
-| Name | Description |
-| ------ | ------ |
-| airline | Name of the airline |
-| price | Total price |
-| cabinclass | E for Economy and B for Business |
-| departureAirportCode | Eg: LHR |
-| destinationAirportCode | Eg: LHR |
-| departureDate | ISO_LOCAL_DATE_TIME format |
-| arrivalDate | ISO_LOCAL_DATE_TIME format |
+#### ❌ Validation Error (400 Bad Request)
 
-**ToughJet API**
+```json
+{
+  "timestamp": "2025-10-10T12:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Return date must be on/after departure date",
+  "path": "/api/v1/search"
+}
+```
 
-**Request**
+### 🚀 Future Improvements
 
-| Name | Description |
-| ------ | ------ |
-| from | 3 letter IATA code(eg. LHR, AMS) |
-| to | 3 letter IATA code(eg. LHR, AMS) |
-| outboundDate |ISO_LOCAL_DATE format |
-| inboundDate | ISO_LOCAL_DATE format |
-| numberOfAdults | Number of passengers |
-
-**Response**
-
-| Name | Description |
-| ------ | ------ |
-| carrier | Name of the Airline |
-| basePrice | Price without tax(doesn't include discount) |
-| tax | Tax which needs to be charged along with the price |
-| discount | Discount which needs to be applied on the price(in percentage) |
-| departureAirportName | 3 letter IATA code(eg. LHR, AMS) |
-| arrivalAirportName | 3 letter IATA code(eg. LHR, AMS) |
-| outboundDateTime | ISO_INSTANT format |
-| inboundDateTime | ISO_INSTANT format |
-
-**What you need to provide:**
-
-- A solution that meets the above requirements.
-- Write clean, maintainable code following established design principles (e.g., SOLID) and coding standards.
-- Ensure the code is extensible to multiple suppliers.
-- There is no need to complete the 100% of the exercise, as long as you show that you are in the right path, you solution is scalable, the testing is good and that you understand OO principles we will be happy.
-
-- Use the Streams
-- Good use of Spring
-- Use of ControllerAdvice (or equivalent) for error handling
-
-- Implement good unit testing, there is no need for 100% coverage, we want to check your unit testing practices
-- At least one Spring integration tests, the full happy path. Mock suppliers responses using wiremock, or just mock the method when the supplier retrieves data.
-
-**Bonus:**
-- Please show an appreciation for Parallelism
-- Ensure there is request validation
-- Good use of interfaces. e.g. Supplier hidden behind an interface so adding a new supplier should be relatively easy
-  
-**Don't do:**
-- Do NOT over-engineer your solution; keep it simple!
-
-**Note**
-
-Please clone this project then create your own repository from it. Do not fork/branch this project when creating your solution as it will be visible to other applicants.
+1. Add more flight suppliers to broaden coverage
+2. Improve fare and duration calculations for round-trip flights to provide accurate arrival times
+3. Implement caching for popular search requests (e.g., using Redis), with LRU and LFU eviction policies
+4. Add JVM (CPU, I/O, memory) and business metrics (errors, SLIs, etc.) via InfluxDB or Prometheus, and visualize them
+   with Grafana dashboards and alerting
+5. Containerize the application with Docker and set up a CI/CD pipeline
+6. Deploy behind a load balancer (reverse proxy, firewall) and scale horizontally by adding more instances when load
+   increases
+7. Use proxy services to avoid abusive request patterns when interacting with flight suppliers
+8. Log requests via a message broker (Kafka) and store them in cold storage (e.g., Cassandra, ClickHouse) for further analytics
+   and reporting

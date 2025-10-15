@@ -1,0 +1,21 @@
+server.port: 8080
+
+spring.application.name: deblock-flights
+
+logging.level.org.springframework: WARN
+
+deblock:
+  rest-client:
+    connection-timeout-ms: 5000
+    read-timeout-ms: 5000
+    write-timeout-ms: 5000
+    response-timeout-ms: 5000
+    max-in-memory-size: 1073741824
+    retry-attempts: 3
+    retry-backoff-ms: 300
+
+crazy-air:
+  url: "http://localhost:8080/crazy-air"
+
+tough-jet:
+  url: "http://localhost:8080/tough-jet"

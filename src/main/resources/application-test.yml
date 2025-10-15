@@ -1,0 +1,9 @@
+crazy-air:
+  url: http://localhost:${wiremock.server.port}/crazy-air
+
+tough-jet:
+  url: http://localhost:${wiremock.server.port}/tough-jet
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
